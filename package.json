@@ -1,0 +1,14 @@
+{
+  "name": "hodman-toolkit",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "libs/*",
+    "apps/*"
+  ],
+  "packageManager": "npm@10.1.0",
+  "scripts": {
+    "build": "npm run build --workspace @hodman-ai/api-contract && npm run build --workspace @hodman-ai/api-client && npm run build --workspace @hodman-ai/cli",
+    "test": "npm run test --workspaces --if-present"
+  }
+}
