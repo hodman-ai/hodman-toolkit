@@ -34,7 +34,7 @@ Authentication and context:
   hodman project list|current
   hodman project use UUID
   hodman project show [--project UUID]
-  hodman project create --slug SLUG [--mode builder|agent] [--type custom|prompt] [--prompt TEXT|--prompt-file FILE]
+  hodman project create --slug SLUG [--intent PROJECT_INTENT] [--type custom|prompt] [--prompt TEXT|--prompt-file FILE]
   hodman project update [--project UUID] --set key=value [--set key=value]
   hodman project run|build|stop|publish|publish-status [--project UUID]
 

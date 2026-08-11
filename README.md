@@ -2,6 +2,14 @@
 
 Open-source, user-authorized tools for operating [Hodman](https://hodman.ai) projects from a terminal or an external coding agent.
 
+## What is Hodman?
+
+[Hodman](https://hodman.ai) is an AI work and software-building platform. Each project combines an AI harness with a durable code workspace, an application runtime, Postgres data, tasks, conversations, and scheduled workflows.
+
+Hodman can build and maintain web applications, SaaS products, internal tools, and automations, or run an ongoing AI agent that handles operational work directly. The Toolkit lets external environments such as Codex and Claude Code access user-authorized Hodman projects without exposing the platform's private server implementation or internal prompts.
+
+## What's included
+
 This repository contains:
 
 - `@hodman-ai/cli` — the `hodman` command-line client;
@@ -52,14 +60,14 @@ cp skills/hodman/SKILL.md ~/.claude/skills/hodman/SKILL.md
 
 Start a new agent session after installing or updating the skill.
 
-## Project modes
+## Project types and AI harnesses
 
-Hodman projects have two AI instruction modes:
+The existing `projectIntent` determines which platform-managed AI harness a project receives:
 
-- **builder** creates and maintains a system that solves the user's problem;
-- **agent** acts as an ongoing assistant that solves tasks directly and extends its project when software makes the workflow more reliable.
+- `aiAgent` uses the **agent harness** and handles ongoing operational work directly;
+- every other project intent uses the **builder harness** and creates or maintains a system that solves the user's problem.
 
-Create them explicitly with `--mode builder` or `--mode agent`. Internal prompts and runtime implementation remain platform-owned; the public skill describes only the supported external operating contract.
+For example, use `--intent aiAgent` for an agent project or `--intent webApplication` for an application project. This is separate from the low-level `--type custom|prompt` provisioning field. Internal prompts and runtime implementation remain platform-owned.
 
 ## Development
 

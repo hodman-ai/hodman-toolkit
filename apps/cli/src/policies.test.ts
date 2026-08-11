@@ -4,18 +4,19 @@ import { parseArgs } from './args.js'
 import { resolveProjectCreationPolicy, resolveTaskStatus } from './policies.js'
 
 describe('public CLI policies', () => {
-  it('maps agent projects to the AI-agent platform intent', () => {
-    const args = parseArgs(['project', 'create', '--mode', 'agent'])
+  it('passes the AI-agent project intent through to the platform', () => {
+    const args = parseArgs(['project', 'create', '--intent', 'aiAgent'])
     expect(resolveProjectCreationPolicy(args, 'Monitor campaigns')).toEqual({
       projectType: 'prompt',
       projectIntent: 'aiAgent',
     })
   })
 
-  it('keeps builder projects on builder instructions', () => {
-    const args = parseArgs(['project', 'create', '--mode', 'builder'])
+  it('passes builder project intents through without inventing a mode field', () => {
+    const args = parseArgs(['project', 'create', '--intent', 'webApplication'])
     expect(resolveProjectCreationPolicy(args, 'Build an application')).toEqual({
       projectType: 'prompt',
+      projectIntent: 'webApplication',
     })
   })
 

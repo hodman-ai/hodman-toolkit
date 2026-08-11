@@ -26,11 +26,11 @@ The login password is read from an interactive hidden prompt. Run `hodman --help
 ## Create a project
 
 ```bash
-hodman project create --slug customer-portal --mode builder --prompt "Build a customer portal"
-hodman project create --slug marketing-analyst --mode agent --prompt "Monitor acquisition and campaign performance"
+hodman project create --slug customer-portal --intent webApplication --prompt "Build a customer portal"
+hodman project create --slug marketing-analyst --intent aiAgent --prompt "Monitor acquisition and campaign performance"
 ```
 
-Builder and agent projects receive different platform-managed instruction sets. The CLI does not download or reproduce those internal prompts.
+The existing `projectIntent` selects the platform-managed harness: `aiAgent` uses agent instructions, while every other intent uses builder instructions. The CLI does not download or reproduce those internal prompts.
 
 ## Task boundary
 

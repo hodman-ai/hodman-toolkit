@@ -9,22 +9,20 @@ export function resolveTaskStatus(args: ParsedArgs): 'backlog' | 'todo' {
 export function resolveProjectCreationPolicy(
   args: ParsedArgs,
   prompt: string,
-): { projectType: 'custom' | 'prompt'; projectIntent?: 'aiAgent' } {
-  const mode = option(args, 'mode')
-  if (mode && mode !== 'builder' && mode !== 'agent') throw new Error('invalid_project_mode')
-
+): { projectType: 'custom' | 'prompt'; projectIntent?: string } {
+  const projectIntent = option(args, 'intent')
   const requestedType = option(args, 'type')
   if (requestedType && requestedType !== 'prompt' && requestedType !== 'custom') {
     throw new Error('invalid_project_type')
   }
   const projectType: 'custom' | 'prompt' = requestedType === 'prompt' || requestedType === 'custom'
     ? requestedType
-    : prompt || mode === 'agent'
+    : prompt || projectIntent
       ? 'prompt'
       : 'custom'
 
   return {
     projectType,
-    ...(mode === 'agent' ? { projectIntent: 'aiAgent' as const } : {}),
+    ...(projectIntent ? { projectIntent } : {}),
   }
 }

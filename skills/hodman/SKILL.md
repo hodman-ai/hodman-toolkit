@@ -25,23 +25,23 @@ Hodman projects combine a durable code workspace, an application runtime, projec
 
 Successful commands print JSON. Check for `{ "err": ... }`; do not infer success from empty output.
 
-## Project modes
+## Project types and harness behavior
 
-Hodman projects use one of two AI instruction modes:
+A Hodman project's `projectIntent` selects its product type. The platform derives the AI harness behavior from that existing field:
 
-- **builder** — builds and maintains a system that solves the user's problem. Use this for applications, websites, SaaS products, automations, and other software outcomes.
-- **agent** — acts as an ongoing assistant and solves operational tasks directly, while still being able to extend its own project when code, UI, storage, or integrations make the work more reliable.
+- `aiAgent` uses the **agent harness**. It acts as an ongoing assistant and solves operational tasks directly, while still being able to extend its own project when code, UI, storage, or integrations make the work more reliable.
+- Every other project intent uses the **builder harness**. It builds and maintains a system that solves the user's problem, including applications, websites, SaaS products, automations, and other software outcomes.
 
-The platform selects the correct internal instruction set. Do not recreate or override those private instructions from the external harness.
+This is not a separate mode stored by the CLI. The platform selects the correct internal instruction set from `projectIntent`; do not recreate or override those private instructions from the external harness.
 
-Create projects explicitly:
+Examples:
 
 ```bash
-hodman project create --slug customer-portal --mode builder --prompt "Build a customer portal"
-hodman project create --slug marketing-analyst --mode agent --prompt "Monitor acquisition and help improve campaign performance"
+hodman project create --slug marketing-analyst --intent aiAgent --prompt "Monitor acquisition and help improve campaign performance"
+hodman project create --slug customer-portal --intent webApplication --prompt "Build a customer portal"
 ```
 
-Use an existing project unless the user asked to create a new one. Project mode is separate from the low-level `--type custom|prompt` provisioning option.
+Use an existing project unless the user asked to create a new one. `projectIntent` is separate from the low-level `projectType` provisioning field exposed as `--type custom|prompt`.
 
 ## Conversations, tasks, and delegation
 
