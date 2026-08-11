@@ -8,6 +8,7 @@ import { flag, numberOption, option, parseArgs, parseSetOptions, requiredOption,
 import { deleteStoredSession, getStoredSession, jwtExpiresAt, setStoredSession } from './credentials.js'
 import { patchConfig, readConfig } from './config.js'
 import { promptHidden, promptLine, readStdin, readTextInput } from './input.js'
+import { resolveProjectCreationPolicy, resolveTaskStatus } from './policies.js'
 import { CliSession } from './session.js'
 
 const CLI_VERSION = '0.1.0'
@@ -27,19 +28,20 @@ Authentication and context:
   hodman auth logout
   hodman host show
   hodman host set URL
-  hodman tenant list|current
+  hodman tenant list [--limit 20] [--offset 0] [--search TEXT]
+  hodman tenant current
   hodman tenant use NAME
   hodman project list|current
   hodman project use UUID
   hodman project show [--project UUID]
-  hodman project create --slug SLUG [--type custom|prompt] [--prompt TEXT|--prompt-file FILE]
+  hodman project create --slug SLUG [--mode builder|agent] [--type custom|prompt] [--prompt TEXT|--prompt-file FILE]
   hodman project update [--project UUID] --set key=value [--set key=value]
   hodman project run|build|stop|publish|publish-status [--project UUID]
 
 Tasks and threads:
   hodman task list [--project UUID] [--status STATUS]
   hodman task show --task UUID
-  hodman task create --title TEXT --message TEXT [--project UUID] [--status backlog|todo|inbox]
+  hodman task create --title TEXT --message TEXT [--project UUID] [--status backlog|todo] [--wait]
   hodman task move --task UUID --status STATUS
   hodman task reply --task UUID --message TEXT
   hodman task complete --task UUID --message TEXT
@@ -206,9 +208,7 @@ async function createTask(client: HodmanApiClient, args: ParsedArgs): Promise<un
   const { tenant, projectId } = await projectContext(args)
   const title = requiredOption(args, 'title')
   const message = requiredOption(args, 'message')
-  const statusRaw = option(args, 'status') ?? 'backlog'
-  if (!['inbox', 'backlog', 'todo'].includes(statusRaw)) throw new Error('invalid_task_status')
-  const status = statusRaw as 'inbox' | 'backlog' | 'todo'
+  const status = resolveTaskStatus(args)
   const thread = await client.createThread(tenant, {
     tenant,
     projectId,
@@ -216,7 +216,7 @@ async function createTask(client: HodmanApiClient, args: ParsedArgs): Promise<un
     assigneeProjectId: projectId,
     name: title,
     threadStatus: status,
-    taskMode: status === 'inbox' ? 'readonly' : 'work',
+    taskMode: 'work',
     priorityRank: option(args, 'priority') ? numberOption(args, 'priority', 0) : null,
   })
   const created = await client.createMessage(tenant, {
@@ -251,8 +251,11 @@ export async function runCommand(args: ParsedArgs): Promise<unknown> {
   const client = await authenticatedClient()
 
   if (scope === 'tenant' && action === 'list') {
-    const profile = await client.profile()
-    return { result: profile.tenants }
+    return client.tenants(
+      numberOption(args, 'limit', 20),
+      numberOption(args, 'offset', 0),
+      option(args, 'search') ?? undefined,
+    )
   }
   if (scope === 'tenant' && action === 'current') {
     const config = await readConfig()
@@ -260,9 +263,9 @@ export async function runCommand(args: ParsedArgs): Promise<unknown> {
   }
   if (scope === 'tenant' && action === 'use') {
     const name = positional(args, 2, 'tenant_required')
-    const profile = await client.profile()
-    if (!profile.tenants.some((tenant) => tenant.name === name)) throw new Error('tenant_not_accessible')
-    return patchConfig({ tenant: name, projectId: null })
+    const tenant = await client.tenantByName(name)
+    if (!tenant) throw new Error('tenant_not_accessible')
+    return patchConfig({ tenant: tenant.name, projectId: null })
   }
 
   if (scope === 'project' && action === 'current') {
@@ -286,11 +289,11 @@ export async function runCommand(args: ParsedArgs): Promise<unknown> {
   }
   if (scope === 'project' && action === 'create') {
     const { tenant } = await context(args)
-    const projectType = option(args, 'type') === 'prompt' ? 'prompt' : 'custom'
     const prompt = await readTextInput({ value: option(args, 'prompt'), file: option(args, 'prompt-file'), stdin: flag(args, 'stdin') })
+    const creationPolicy = resolveProjectCreationPolicy(args, prompt)
     return client.provisionProject(tenant, {
       slug: requiredOption(args, 'slug'),
-      projectType,
+      ...creationPolicy,
       ...(prompt ? { prompt } : {}),
       visibility: option(args, 'visibility') === 'tenant' ? 'tenant' : 'personal',
       deferInitialRun: flag(args, 'defer-run'),

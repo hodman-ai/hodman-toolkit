@@ -2,6 +2,11 @@
   "name": "hodman-toolkit",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hodman-ai/hodman-toolkit.git"
+  },
   "workspaces": [
     "libs/*",
     "apps/*"

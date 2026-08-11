@@ -1,6 +1,13 @@
 {
   "name": "@hodman-ai/api-contract",
   "version": "1.0.0",
+  "description": "Public DTOs for supported Hodman API endpoints",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hodman-ai/hodman-toolkit.git",
+    "directory": "libs/api-contract"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

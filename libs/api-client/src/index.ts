@@ -10,6 +10,7 @@ import type {
   THodmanProjectEnv,
   THodmanShellResponse,
   THodmanSqlResponse,
+  THodmanTenantRecord,
   THodmanThread,
   TListResponse,
 } from '@hodman-ai/api-contract'
@@ -111,6 +112,19 @@ export class HodmanApiClient {
 
   profile() {
     return this.request<THodmanProfile>('/auth/core/profile')
+  }
+
+  tenants(limit = 20, offset = 0, search?: string) {
+    return this.request<TListResponse<THodmanTenantRecord>>('/auth/tenants', {
+      query: { limit, offset, search },
+    })
+  }
+
+  async tenantByName(name: string) {
+    const response = await this.request<TListResponse<THodmanTenantRecord>>('/auth/tenants', {
+      query: { tenant: name, search: name, limit: 100, offset: 0 },
+    })
+    return response.result.find((tenant) => tenant.name === name) ?? null
   }
 
   projects(tenant: string, limit = 100, offset = 0) {

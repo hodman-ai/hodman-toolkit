@@ -18,6 +18,22 @@ export type THodmanTenant = {
   current: boolean
 }
 
+export type THodmanTenantRecord = {
+  id: number
+  uuid: string
+  createdAt?: string | null
+  updatedAt?: string | null
+  name: string
+  displayName: string
+  ownerUserId?: string | null
+  tenantType: 'tenant-management' | 'customer-tenant'
+  location: string
+  status: 'freemium' | 'working' | 'banned' | 'archive'
+  logoAssetId?: string | null
+  logoUrl?: string | null
+  parentTenantName?: string | null
+}
+
 export type THodmanProfile = {
   user: {
     uuid: string

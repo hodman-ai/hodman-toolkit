@@ -16,6 +16,16 @@ describe('HodmanApiClient', () => {
     await expect(client.projects('acme', 10, 0)).resolves.toMatchObject({ total: 0 })
   })
 
+  it('paginates and searches tenants', async () => {
+    const fetchMock = vi.fn(async (url: URL | RequestInfo) => {
+      expect(String(url)).toBe('https://hodman.ai/auth/tenants?limit=20&offset=40&search=demo')
+      return new Response(JSON.stringify({ result: [], total: 0, limit: 20, offset: 40 }), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const client = new HodmanApiClient('https://hodman.ai', async () => 'token')
+    await expect(client.tenants(20, 40, 'demo')).resolves.toMatchObject({ total: 0, offset: 40 })
+  })
+
   it('returns structured API errors', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ err: 'forbidden', errDescription: 'No access' }), { status: 403 })))
     const client = new HodmanApiClient('https://hodman.ai', async () => 'token')

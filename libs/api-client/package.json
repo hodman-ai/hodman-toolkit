@@ -1,10 +1,19 @@
 {
   "name": "@hodman-ai/api-client",
   "version": "1.0.0",
+  "description": "Typed client for supported Hodman API endpoints",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hodman-ai/hodman-toolkit.git",
+    "directory": "libs/api-client"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run"
@@ -13,6 +22,6 @@
     "@hodman-ai/api-contract": "^1.0.0"
   },
   "devDependencies": {
-    "vitest": "^1.6.0"
+    "vitest": "^4.1.10"
   }
 }
