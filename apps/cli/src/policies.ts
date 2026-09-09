@@ -1,9 +1,25 @@
-import { option, type ParsedArgs } from './args.js'
+import { option, requiredOption, type ParsedArgs } from './args.js'
 
 export function resolveTaskStatus(args: ParsedArgs): 'backlog' | 'todo' {
   const status = option(args, 'status') ?? 'backlog'
   if (status !== 'backlog' && status !== 'todo') throw new Error('invalid_task_status')
   return status
+}
+
+export function resolveProjectOwnership(args: ParsedArgs): {
+  visibility: 'tenant' | 'personal'
+  ownerUserId?: string
+} {
+  const ownerUserId = option(args, 'owner-user')
+  if (ownerUserId !== null) {
+    return {
+      visibility: 'personal',
+      ownerUserId: requiredOption(args, 'owner-user'),
+    }
+  }
+  return {
+    visibility: option(args, 'visibility') === 'tenant' ? 'tenant' : 'personal',
+  }
 }
 
 export function resolveProjectCreationPolicy(

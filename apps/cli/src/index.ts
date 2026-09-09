@@ -5,13 +5,19 @@ import { HodmanApiClient, HodmanApiError, normalizeHost } from '@hodman-ai/api-c
 import type { THodmanGitConnection, THodmanMessage, THodmanProjectEnv } from '@hodman-ai/api-contract'
 
 import { flag, numberOption, option, parseArgs, parseSetOptions, requiredOption, type ParsedArgs } from './args.js'
-import { deleteStoredSession, getStoredSession, jwtExpiresAt, setStoredSession } from './credentials.js'
+import {
+  deleteStoredSession,
+  jwtExpiresAt,
+  resolveSession,
+  setStoredSession,
+  withRefreshLock,
+} from './credentials.js'
 import { patchConfig, readConfig } from './config.js'
 import { promptHidden, promptLine, readStdin, readTextInput } from './input.js'
-import { resolveProjectCreationPolicy, resolveTaskStatus } from './policies.js'
+import { resolveProjectCreationPolicy, resolveProjectOwnership, resolveTaskStatus } from './policies.js'
 import { CliSession } from './session.js'
 
-const CLI_VERSION = '0.1.0'
+const CLI_VERSION = '0.2.0'
 
 type JsonObject = Record<string, unknown>
 
@@ -34,9 +40,18 @@ Authentication and context:
   hodman project list|current
   hodman project use UUID
   hodman project show [--project UUID]
-  hodman project create --slug SLUG [--intent PROJECT_INTENT] [--type custom|prompt] [--prompt TEXT|--prompt-file FILE]
+  hodman project create --slug SLUG [--intent PROJECT_INTENT] [--type custom|prompt] [--prompt TEXT|--prompt-file FILE] [--visibility personal|tenant] [--owner-user UUID]
+  hodman project create-subproject [--project PARENT_UUID] --pathname PATH --prompt TEXT|--prompt-file FILE [--type web-app|landing-page|prompt] [--intent PROJECT_INTENT]
   hodman project update [--project UUID] --set key=value [--set key=value]
   hodman project run|build|stop|publish|publish-status [--project UUID]
+  hodman project releases [--project UUID] [--limit 50] [--offset 0]
+  hodman project release --release UUID
+
+Projects are independent top-level products with their own host and settings. Sub-projects are
+independently managed parts of one product, mounted at a pathname on the parent host. Use them
+for separately built and published sites, applications, or agents that belong to the same product.
+Sub-projects cannot be nested. After creation, select a sub-project by UUID and use the same
+show, update, run, build, publish, release-history, file, ENV, log, shell, SQL, task, and Git commands.
 
 Tasks and threads:
   hodman task list [--project UUID] [--status STATUS]
@@ -47,6 +62,21 @@ Tasks and threads:
   hodman task complete --task UUID --message TEXT
   hodman thread messages --thread UUID
   hodman thread send --thread UUID --message TEXT [--wait] [--timeout SECONDS]
+
+Messenger integrations:
+  hodman messengers telegram status [--project UUID]
+  hodman messengers telegram connect --token BOT_TOKEN [--project ROOT_UUID]
+  hodman messengers telegram disconnect|refresh [--project ROOT_UUID]
+  hodman messengers telegram chats list [--project UUID]
+  hodman messengers telegram chats add|remove --chat TELEGRAM_CHAT_ID [--project UUID]
+  hodman messengers telegram requests list [--project UUID] [--status pending|history|all] [--search TEXT]
+  hodman messengers telegram requests approve|reject --request UUID [--project TARGET_UUID]
+  hodman messengers telegram send --chat TELEGRAM_CHAT_ID --message TEXT [--project UUID]
+
+App Connections:
+  hodman connectors list
+  hodman connectors probe|create|delete --target PROJECT_UUID
+  hodman connectors grants set --target PROJECT_UUID --sources-json '["source-project-uuid"]'
 
 Project tools:
   hodman env list [--project UUID] [--env dev|prod]
@@ -104,6 +134,9 @@ async function authenticatedClient(): Promise<HodmanApiClient> {
 }
 
 async function login(args: ParsedArgs): Promise<unknown> {
+  if (String(process.env.HODMAN_REFRESH_TOKEN ?? '').trim()) {
+    throw new Error('environment_credential_active_unset_HODMAN_REFRESH_TOKEN_before_login')
+  }
   const current = await readConfig()
   const host = normalizeHost(option(args, 'host') ?? current.host)
   if (host !== current.host) await patchConfig({ host, tenant: null, projectId: null })
@@ -133,8 +166,8 @@ async function login(args: ParsedArgs): Promise<unknown> {
 
 async function authStatus(): Promise<unknown> {
   const config = await readConfig()
-  const stored = await getStoredSession(config.host)
-  if (!stored) return { ok: true, authenticated: false, host: config.host }
+  const resolved = await resolveSession(config.host)
+  if (!resolved) return { ok: true, authenticated: false, host: config.host }
   const client = await authenticatedClient()
   const profile = await client.profile()
   return {
@@ -143,19 +176,26 @@ async function authStatus(): Promise<unknown> {
     host: config.host,
     tenant: config.tenant,
     projectId: config.projectId,
-    credentialBackend: process.env.HODMAN_CREDENTIAL_BACKEND === 'file' ? 'file' : 'os-keyring-or-file-fallback',
+    credentialBackend: resolved.source,
     user: profile.user,
   }
 }
 
 async function logout(): Promise<unknown> {
   const config = await readConfig()
-  const stored = await getStoredSession(config.host)
-  if (stored) {
+  const resolved = await resolveSession(config.host)
+  if (resolved?.source === 'environment') {
     const client = new HodmanApiClient(config.host)
-    await client.logout(stored.refreshToken).catch(() => undefined)
+    await client.logout(resolved.session.refreshToken)
+  } else if (resolved) {
+    await withRefreshLock(config.host, async () => {
+      const latest = await resolveSession(config.host)
+      if (!latest || latest.source === 'environment') return
+      const client = new HodmanApiClient(config.host)
+      await client.logout(latest.session.refreshToken).catch(() => undefined)
+      await deleteStoredSession(config.host)
+    })
   }
-  await deleteStoredSession(config.host)
   await patchConfig({ tenant: null, projectId: null })
   return { ok: true, host: config.host }
 }
@@ -291,11 +331,29 @@ export async function runCommand(args: ParsedArgs): Promise<unknown> {
     const { tenant } = await context(args)
     const prompt = await readTextInput({ value: option(args, 'prompt'), file: option(args, 'prompt-file'), stdin: flag(args, 'stdin') })
     const creationPolicy = resolveProjectCreationPolicy(args, prompt)
+    const ownership = resolveProjectOwnership(args)
     return client.provisionProject(tenant, {
       slug: requiredOption(args, 'slug'),
       ...creationPolicy,
       ...(prompt ? { prompt } : {}),
-      visibility: option(args, 'visibility') === 'tenant' ? 'tenant' : 'personal',
+      ...ownership,
+      deferInitialRun: flag(args, 'defer-run'),
+    })
+  }
+  if (scope === 'project' && action === 'create-subproject') {
+    const { tenant, projectId: parentProjectId } = await projectContext(args)
+    const prompt = await readTextInput({ value: option(args, 'prompt'), file: option(args, 'prompt-file'), stdin: flag(args, 'stdin') })
+    if (!prompt.trim()) throw new Error('prompt_required')
+    const projectType = option(args, 'type') ?? 'web-app'
+    if (projectType !== 'web-app' && projectType !== 'landing-page' && projectType !== 'prompt') {
+      throw new Error('invalid_subproject_type')
+    }
+    const projectIntent = option(args, 'intent')
+    return client.provisionSubProject(tenant, parentProjectId, {
+      pathname: requiredOption(args, 'pathname'),
+      projectType,
+      ...(projectIntent ? { projectIntent } : {}),
+      prompt,
       deferInitialRun: flag(args, 'defer-run'),
     })
   }
@@ -316,6 +374,14 @@ export async function runCommand(args: ParsedArgs): Promise<unknown> {
   if (scope === 'project' && action === 'publish-status') {
     const { tenant, projectId } = await projectContext(args)
     return client.publishStatus(tenant, projectId)
+  }
+  if (scope === 'project' && action === 'releases') {
+    const { tenant, projectId } = await projectContext(args)
+    return client.releases(tenant, projectId, numberOption(args, 'limit', 50), numberOption(args, 'offset', 0))
+  }
+  if (scope === 'project' && action === 'release') {
+    const { tenant } = await context(args)
+    return client.release(tenant, requiredOption(args, 'release'))
   }
 
   if (scope === 'task' && action === 'list') {
@@ -365,6 +431,55 @@ export async function runCommand(args: ParsedArgs): Promise<unknown> {
     return flag(args, 'wait')
       ? waitForThread(client, tenant, threadId, message.uuid, numberOption(args, 'timeout', 300))
       : message
+  }
+
+  if (scope === 'messengers' && action === 'telegram') {
+    const operation = args.positionals[2]
+    const leafAction = args.positionals[3]
+    const { tenant, projectId } = await projectContext(args)
+    if (operation === 'status') return client.telegramStatus(tenant, projectId)
+    if (operation === 'connect') return client.telegramConnect(tenant, projectId, requiredOption(args, 'token'))
+    if (operation === 'disconnect') return client.telegramDisconnect(tenant, projectId)
+    if (operation === 'refresh') return client.telegramRefresh(tenant, projectId)
+    if (operation === 'chats' && leafAction === 'list') {
+      const status = await client.telegramStatus(tenant, projectId)
+      return { result: status.allowedChats, total: status.allowedChats.length }
+    }
+    if (operation === 'chats' && leafAction === 'add') {
+      return client.telegramAddChat(tenant, projectId, requiredOption(args, 'chat'))
+    }
+    if (operation === 'chats' && leafAction === 'remove') {
+      return client.telegramRemoveChat(tenant, projectId, requiredOption(args, 'chat'))
+    }
+    if (operation === 'requests' && leafAction === 'list') {
+      const status = option(args, 'status')
+      if (status && status !== 'pending' && status !== 'history' && status !== 'all') throw new Error('invalid_telegram_request_status')
+      return client.telegramRequests(tenant, projectId, {
+        status: status as 'pending' | 'history' | 'all' | undefined,
+        search: option(args, 'search') ?? undefined,
+        limit: numberOption(args, 'limit', 20),
+        offset: numberOption(args, 'offset', 0),
+      })
+    }
+    if (operation === 'requests' && (leafAction === 'approve' || leafAction === 'reject')) {
+      return client.telegramDecideRequest(tenant, projectId, requiredOption(args, 'request'), leafAction === 'approve' ? 'approve' : 'reject')
+    }
+    if (operation === 'send') {
+      return client.telegramSend(tenant, projectId, requiredOption(args, 'chat'), requiredOption(args, 'message'))
+    }
+  }
+
+  if (scope === 'connectors') {
+    const { tenant } = await context(args)
+    if (action === 'list') return client.appConnections(tenant)
+    if (action === 'probe') return client.probeAppConnection(tenant, requiredOption(args, 'target'))
+    if (action === 'create') return client.createAppConnection(tenant, requiredOption(args, 'target'))
+    if (action === 'delete') return client.deleteAppConnection(tenant, requiredOption(args, 'target'))
+    if (action === 'grants' && args.positionals[2] === 'set') {
+      const parsed: unknown = JSON.parse(requiredOption(args, 'sources-json'))
+      if (!Array.isArray(parsed) || parsed.some((value) => typeof value !== 'string')) throw new Error('sources_json_must_be_string_array')
+      return client.setAppConnectionGrants(tenant, requiredOption(args, 'target'), parsed)
+    }
   }
 
   if (scope === 'env') {

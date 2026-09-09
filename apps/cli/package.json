@@ -1,6 +1,6 @@
 {
   "name": "@hodman-ai/cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "User-authorized CLI for Hodman",
   "license": "MIT",
@@ -19,7 +19,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc --noEmit && esbuild src/index.ts --bundle --platform=node --format=esm --banner:js=\"#!/usr/bin/env node\" --external:@napi-rs/keyring --outfile=dist/index.js && chmod 0755 dist/index.js",
+    "build": "tsc --noEmit && esbuild src/index.ts --bundle --platform=node --format=esm --banner:js=\"#!/usr/bin/env node\" --external:@napi-rs/keyring --outfile=dist/index.js && node -e \"require('node:fs').chmodSync('dist/index.js', 0o755)\"",
     "test": "vitest run"
   },
   "dependencies": {
@@ -31,6 +31,6 @@
     "@types/node": "^20.19.43",
     "esbuild": "^0.25.12",
     "typescript": "^5.3.3",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   }
 }

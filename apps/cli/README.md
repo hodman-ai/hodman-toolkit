@@ -21,7 +21,7 @@ hodman project list
 hodman project use <project-uuid>
 ```
 
-The login password is read from an interactive hidden prompt. Run `hodman --help` for the current command list.
+The login password is read from an interactive hidden prompt. The resulting mutable session is stored locally, refresh-token successors are persisted atomically, and concurrent CLI processes serialize refresh and logout. `HODMAN_REFRESH_TOKEN` is intended only for ephemeral compatibility use: it opts out of rotation and is never copied to or allowed to shadow local credential storage. ENV logout revokes only the ENV-owned token. Run `hodman --help` for the current command list.
 
 ## Create a project
 
@@ -31,6 +31,40 @@ hodman project create --slug marketing-analyst --intent aiAgent --prompt "Monito
 ```
 
 The existing `projectIntent` selects the platform-managed harness: `aiAgent` uses agent instructions, while every other intent uses builder instructions. The CLI does not download or reproduce those internal prompts.
+
+Tenant owners, tenant managers, and global administrators can assign a personal project to an active user of the selected tenant:
+
+```bash
+hodman project create --slug customer-agent --intent aiAgent --owner-user USER_UUID --defer-run
+```
+
+The platform validates both the caller's permission and the target user's active tenant membership. Without `--owner-user`, a personal project belongs to the current user; `--visibility tenant` creates a shared tenant project.
+
+## Projects and sub-projects
+
+A project is an independent top-level product with its own host, ownership, runtime, and settings. Use it when the result should stand on its own: for example, a SaaS product, an internal tool, a customer website, or an ongoing AI agent.
+
+A sub-project is an independently managed part of a parent product, mounted at a pathname on the parent's host. Use sub-projects when one product needs separately built and published areas, such as multiple landing pages, a documentation site, a campaign microsite, an embedded application, or a specialized AI agent. Sub-projects cannot be nested.
+
+Create a sub-project under the currently selected parent, or pass the parent explicitly with `--project`:
+
+```bash
+hodman project create-subproject --pathname /campaign --type landing-page --prompt "Build the campaign landing page"
+hodman project create-subproject --project <parent-uuid> --pathname /assistant --type prompt --intent aiAgent --prompt "Handle support operations"
+```
+
+After creation, select the returned sub-project UUID with `hodman project use <uuid>`. The normal project commands then work with it, including configuration, runtime operations, publication, files, ENV, logs, shell, SQL, tasks, and Git.
+
+## Publication and release history
+
+```bash
+hodman project publish
+hodman project publish-status
+hodman project releases --limit 20
+hodman project release --release <release-uuid>
+```
+
+`publish-status` reports the current temporary publication job. `releases` and `release` read the persistent Release records already exposed by the platform API, including publication metadata, review, related Thread IDs, and Git status.
 
 ## Task boundary
 

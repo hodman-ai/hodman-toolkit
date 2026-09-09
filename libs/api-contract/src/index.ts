@@ -1,3 +1,10 @@
+export type {
+  THodmanAppConnectionOverview,
+  THodmanTelegramAccessRequest,
+  THodmanTelegramChat,
+  THodmanTelegramStatus,
+} from './messengers.js'
+
 export type TListResponse<T> = {
   result: T[]
   total: number
@@ -45,6 +52,29 @@ export type THodmanProfile = {
   tenants: THodmanTenant[]
 }
 
+export type THodmanRelease = {
+  id: number
+  uuid: string
+  createdAt?: string | null
+  updatedAt?: string | null
+  tenant: string
+  projectId: string
+  sequence: number
+  snapshotUuid: string
+  previousReleaseId?: string | null
+  publishedRevision?: number | null
+  publishedAt: string
+  url: string
+  includedThreadIds?: string[] | null
+  review?: string | null
+  reviewStatus: 'generating' | 'ready' | 'error'
+  reviewModel?: string | null
+  reviewError?: string | null
+  gitTag?: string | null
+  gitStatus: 'pending' | 'success' | 'error' | 'skipped'
+  gitError?: string | null
+}
+
 export type THodmanProject = {
   uuid: string
   tenant: string
@@ -58,6 +88,7 @@ export type THodmanProject = {
   runtimePlacement?: 'server' | 'desktop' | null
   developmentRuntimeMode?: 'ephemeral-v1' | 'persistent-v2' | null
   visibility?: 'tenant' | 'personal' | null
+  ownerUserId?: string | null
   runCmd?: string | null
   buildCmd?: string | null
   dockerImage?: string | null
@@ -92,6 +123,9 @@ export type THodmanMessage = {
   threadId: string
   role: string
   textContent?: string | null
+  contentType?: 'explanation' | 'report' | null
+  messagePhase?: 'commentary' | 'final_answer' | null
+  deliverySuppressed?: boolean
   createdAt?: string | null
   createdByType?: string | null
   [key: string]: unknown

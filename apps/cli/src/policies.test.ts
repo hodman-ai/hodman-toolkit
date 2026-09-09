@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { parseArgs } from './args.js'
-import { resolveProjectCreationPolicy, resolveTaskStatus } from './policies.js'
+import { resolveProjectCreationPolicy, resolveProjectOwnership, resolveTaskStatus } from './policies.js'
 
 describe('public CLI policies', () => {
   it('passes the AI-agent project intent through to the platform', () => {
@@ -18,6 +18,24 @@ describe('public CLI policies', () => {
       projectType: 'prompt',
       projectIntent: 'webApplication',
     })
+  })
+
+  it('assigns a requested active tenant user as the personal project owner', () => {
+    const args = parseArgs(['project', 'create', '--owner-user', 'user-123'])
+    expect(resolveProjectOwnership(args)).toEqual({
+      visibility: 'personal',
+      ownerUserId: 'user-123',
+    })
+  })
+
+  it('keeps the existing visibility behavior when no owner is specified', () => {
+    expect(resolveProjectOwnership(parseArgs(['project', 'create']))).toEqual({ visibility: 'personal' })
+    expect(resolveProjectOwnership(parseArgs(['project', 'create', '--visibility', 'tenant']))).toEqual({ visibility: 'tenant' })
+  })
+
+  it('requires a value for the owner option', () => {
+    const args = parseArgs(['project', 'create', '--owner-user'])
+    expect(() => resolveProjectOwnership(args)).toThrow('owner-user_required')
   })
 
   it('does not allow the external CLI to create Inbox tasks', () => {

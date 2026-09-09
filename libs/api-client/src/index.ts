@@ -1,5 +1,6 @@
 import type {
   THodmanApiError,
+  THodmanAppConnectionOverview,
   THodmanFileContent,
   THodmanFileNode,
   THodmanGitConnection,
@@ -8,9 +9,12 @@ import type {
   THodmanProfile,
   THodmanProject,
   THodmanProjectEnv,
+  THodmanRelease,
   THodmanShellResponse,
   THodmanSqlResponse,
   THodmanTenantRecord,
+  THodmanTelegramAccessRequest,
+  THodmanTelegramStatus,
   THodmanThread,
   TListResponse,
 } from '@hodman-ai/api-contract'
@@ -21,6 +25,8 @@ export type RequestOptions = {
   query?: Record<string, string | number | boolean | null | undefined>
   body?: unknown
   authenticated?: boolean
+  rotateRefreshToken?: boolean
+  timeoutMs?: number
 }
 
 export class HodmanApiError extends Error {
@@ -68,10 +74,12 @@ export class HodmanApiClient {
 
     const response = await fetch(url, {
       method: options.method ?? 'GET',
+      ...(options.timeoutMs ? { signal: AbortSignal.timeout(options.timeoutMs) } : {}),
       headers: {
         Accept: 'application/json',
         ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.rotateRefreshToken ? { 'X-Refresh-Token-Rotation': '1' } : {}),
         'User-Agent': 'hodman-toolkit-cli/0.1.0',
       },
       ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {}),
@@ -98,15 +106,15 @@ export class HodmanApiClient {
     })
   }
 
-  refresh(refreshToken: string) {
-    return this.request<{ accessToken: string }>('/auth/core/token', {
-      method: 'POST', body: { refreshToken }, authenticated: false,
+  refresh(refreshToken: string, rotateRefreshToken = true) {
+    return this.request<{ accessToken: string; refreshToken?: string }>('/auth/core/token', {
+      method: 'POST', body: { refreshToken }, authenticated: false, rotateRefreshToken, timeoutMs: 20_000,
     })
   }
 
   logout(refreshToken: string) {
     return this.request<{ status: string }>('/auth/core/logout', {
-      method: 'POST', body: { refreshToken }, authenticated: false,
+      method: 'POST', body: { refreshToken }, authenticated: false, timeoutMs: 20_000,
     })
   }
 
@@ -141,6 +149,13 @@ export class HodmanApiClient {
     })
   }
 
+  provisionSubProject(tenant: string, parentProjectId: string, body: Record<string, unknown>) {
+    return this.request<{ project: THodmanProject; threadId: string }>(
+      `/api/projects/${encodeURIComponent(parentProjectId)}/subprojects/provision`,
+      { method: 'POST', query: { tenant }, body },
+    )
+  }
+
   patchProject(tenant: string, projectId: string, body: Record<string, unknown>) {
     return this.request<THodmanProject>(`/api/projects/${encodeURIComponent(projectId)}`, {
       method: 'PATCH', query: { tenant }, body,
@@ -161,6 +176,16 @@ export class HodmanApiClient {
 
   publishStatus(tenant: string, projectId: string) {
     return this.request<Record<string, unknown>>(`/api/projects/${encodeURIComponent(projectId)}/publish-status`, { query: { tenant } })
+  }
+
+  releases(tenant: string, projectId: string, limit = 50, offset = 0) {
+    return this.request<TListResponse<THodmanRelease>>('/api/releases', {
+      query: { tenant, projectId, limit, offset, sortby: 'id', sortdir: 'desc' },
+    })
+  }
+
+  release(tenant: string, releaseId: string) {
+    return this.request<THodmanRelease>(`/api/releases/${encodeURIComponent(releaseId)}`, { query: { tenant } })
   }
 
   threads(tenant: string, projectId: string, limit = 200, offset = 0) {
@@ -279,5 +304,95 @@ export class HodmanApiClient {
 
   githubRepositories(tenant: string, connectionId?: string) {
     return this.request<{ result: unknown[] }>('/api/github/repositories', { query: { tenant, connectionId } })
+  }
+
+  telegramStatus(tenant: string, projectId: string) {
+    return this.request<THodmanTelegramStatus>(`/api/project-telegram/${encodeURIComponent(projectId)}`, { query: { tenant } })
+  }
+
+  telegramConnect(tenant: string, projectId: string, botToken: string) {
+    return this.request<THodmanTelegramStatus>(`/api/project-telegram/${encodeURIComponent(projectId)}/token`, {
+      method: 'PATCH', query: { tenant }, body: { botToken },
+    })
+  }
+
+  telegramDisconnect(tenant: string, projectId: string) {
+    return this.request<{ ok: true }>(`/api/project-telegram/${encodeURIComponent(projectId)}/token`, {
+      method: 'DELETE', query: { tenant },
+    })
+  }
+
+  telegramRefresh(tenant: string, projectId: string) {
+    return this.request<THodmanTelegramStatus>(`/api/project-telegram/${encodeURIComponent(projectId)}/refresh`, {
+      method: 'POST', query: { tenant }, body: {},
+    })
+  }
+
+  telegramAddChat(tenant: string, projectId: string, externalId: string) {
+    return this.request<THodmanTelegramStatus>(
+      `/api/project-telegram/${encodeURIComponent(projectId)}/chats/${encodeURIComponent(externalId)}`,
+      { method: 'POST', query: { tenant }, body: {} },
+    )
+  }
+
+  telegramRemoveChat(tenant: string, projectId: string, externalId: string) {
+    return this.request<THodmanTelegramStatus>(
+      `/api/project-telegram/${encodeURIComponent(projectId)}/chats/${encodeURIComponent(externalId)}`,
+      { method: 'DELETE', query: { tenant } },
+    )
+  }
+
+  telegramRequests(tenant: string, projectId: string, params: {
+    status?: 'pending' | 'history' | 'all'
+    search?: string
+    limit?: number
+    offset?: number
+  }) {
+    return this.request<TListResponse<THodmanTelegramAccessRequest>>(
+      `/api/project-telegram/${encodeURIComponent(projectId)}/access-requests`,
+      { query: { tenant, ...params } },
+    )
+  }
+
+  telegramDecideRequest(tenant: string, projectId: string, requestId: string, decision: 'approve' | 'reject') {
+    return this.request<THodmanTelegramAccessRequest>(
+      `/api/project-telegram/${encodeURIComponent(projectId)}/access-requests/${encodeURIComponent(requestId)}`,
+      { method: 'PATCH', query: { tenant }, body: { decision } },
+    )
+  }
+
+  telegramSend(tenant: string, projectId: string, externalId: string, text: string) {
+    return this.request<{ messageId: number; messageIds?: number[] }>(`/api/project-telegram/${encodeURIComponent(projectId)}/send`, {
+      method: 'POST', query: { tenant }, body: { externalId, text },
+    })
+  }
+
+  appConnections(tenant: string) {
+    return this.request<THodmanAppConnectionOverview>('/api/tenant-project-cli', { query: { tenant } })
+  }
+
+  createAppConnection(tenant: string, targetProjectId: string) {
+    return this.request<{ uuid: string; targetProjectId: string; createdAt: string | null }>('/api/tenant-project-cli', {
+      method: 'POST', body: { tenant, targetProjectId },
+    })
+  }
+
+  probeAppConnection(tenant: string, targetProjectId: string) {
+    return this.request<{ available: boolean; help: string | null; err: string | null }>('/api/tenant-project-cli/probe', {
+      method: 'POST', body: { tenant, targetProjectId },
+    })
+  }
+
+  deleteAppConnection(tenant: string, targetProjectId: string) {
+    return this.request<{ targetProjectId: string }>(`/api/tenant-project-cli/${encodeURIComponent(targetProjectId)}`, {
+      method: 'DELETE', query: { tenant },
+    })
+  }
+
+  setAppConnectionGrants(tenant: string, targetProjectId: string, sourceProjectIds: string[]) {
+    return this.request<{ targetProjectId: string; sourceProjectIds: string[] }>(
+      `/api/tenant-project-cli/${encodeURIComponent(targetProjectId)}`,
+      { method: 'PATCH', body: { tenant, sourceProjectIds } },
+    )
   }
 }
