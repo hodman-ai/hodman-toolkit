@@ -21,7 +21,7 @@ hodman project list
 hodman project use <project-uuid>
 ```
 
-The login password is read from an interactive hidden prompt. The resulting mutable session is stored locally, refresh-token successors are persisted atomically, and concurrent CLI processes serialize refresh and logout. `HODMAN_REFRESH_TOKEN` is intended only for ephemeral compatibility use: it opts out of rotation and is never copied to or allowed to shadow local credential storage. ENV logout revokes only the ENV-owned token. Run `hodman --help` for the current command list.
+The login password is read from an interactive hidden prompt. Login sessions rotate and persist refresh tokens; ENV-owned `HODMAN_REFRESH_TOKEN` is not rotated or saved, and concurrent CLI sessions serialize refresh/logout. Run `hodman --help` for the current command list.
 
 ## Create a project
 

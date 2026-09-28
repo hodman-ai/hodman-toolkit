@@ -1,5 +1,10 @@
 export type {
   THodmanAppConnectionOverview,
+  THodmanMessengerConnectionState,
+  THodmanMessengerConnectorDefinition,
+  THodmanMessengerProvider,
+  THodmanMessengerRoute,
+  THodmanProjectMessengerSettings,
   THodmanTelegramAccessRequest,
   THodmanTelegramChat,
   THodmanTelegramStatus,
@@ -112,6 +117,15 @@ export type THodmanThread = {
   requesterProjectId?: string | null
   priorityRank?: number | null
   err?: string | null
+  goalObjective?: string | null
+  goalStatus?: 'active' | 'complete' | 'blocked' | 'budget_limited' | 'cancelled' | null
+  goalTokenBudget?: number | null
+  goalTokensUsed?: number | null
+  goalTurnBudget?: number | null
+  goalTurnsUsed?: number | null
+  goalStartedAt?: string | null
+  goalCompletedAt?: string | null
+  goalRevision?: number | null
   createdAt?: string | null
   updatedAt?: string | null
   [key: string]: unknown

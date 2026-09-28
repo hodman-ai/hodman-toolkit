@@ -1,0 +1,20 @@
+name: Bug report
+description: Report a public, redacted Toolkit bug (not a security vulnerability)
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Never include credentials, customer data, or private hostnames. Security reports belong in SECURITY.md.
+  - type: input
+    id: versions
+    attributes:
+      label: CLI version and Node version
+      placeholder: "hodman version JSON; node --version"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Redacted reproduction and expected vs actual behavior
+    validations:
+      required: true

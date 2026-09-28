@@ -1,9 +1,9 @@
 {
   "name": "@hodman-ai/cli",
-  "version": "0.2.0",
-  "private": true,
+  "version": "0.3.0",
+  "private": false,
   "description": "User-authorized CLI for Hodman",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "homepage": "https://github.com/hodman-ai/hodman-toolkit#readme",
   "repository": {
     "type": "git",
@@ -32,5 +32,14 @@
     "esbuild": "^0.25.12",
     "typescript": "^5.3.3",
     "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "bugs": {
+    "url": "https://github.com/hodman-ai/hodman-toolkit/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

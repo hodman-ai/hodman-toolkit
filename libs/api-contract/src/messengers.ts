@@ -42,6 +42,79 @@ export type THodmanTelegramAccessRequest = {
   resolvedAt: string | null
 }
 
+export type THodmanMessengerProvider = 'telegram' | 'mattermost' | 'slack' | 'teams'
+
+export type THodmanMessengerConnectorDefinition = {
+  provider: THodmanMessengerProvider
+  title: string
+  description: string
+  available: boolean
+  accountModes: Array<'dedicated-agent' | 'business-operator' | 'personal-operator'>
+  credentialFields: Array<{
+    key: string
+    label: string
+    description: string
+    secret: boolean
+    required: boolean
+    inputType: 'password' | 'url' | 'text'
+    placeholder?: string
+  }>
+  setupSteps: string[]
+  capabilities: {
+    text: boolean
+    files: boolean
+    replies: boolean
+    edit: boolean
+    delete: boolean
+    reactions: boolean
+    typing: boolean
+    channelMessages: boolean
+    directMessages: boolean
+    mentionActivation: boolean
+  }
+}
+
+export type THodmanMessengerConnectionState = {
+  id: string
+  connected: boolean
+  status: 'connecting' | 'active' | 'error' | 'disabled'
+  accountMode: 'dedicated-agent' | 'business-operator' | 'personal-operator'
+  baseUrl: string | null
+  identity: {
+    serverId: string
+    accountId: string
+    username: string | null
+    displayName: string | null
+  } | null
+  healthStatus: 'healthy' | 'degraded' | 'offline' | null
+  lastHealthAt: string | null
+  lastErrorCode: string | null
+  hasCredential: boolean
+}
+
+export type THodmanMessengerRoute = {
+  uuid: string
+  providerConversationId: string
+  conversationKind: 'dm' | 'channel' | 'group'
+  teamId: string | null
+  title: string | null
+  authorizationMode: 'explicit-request' | 'provider-membership' | 'trusted-workspace'
+  activationMode: 'dm' | 'mention-only' | 'command-only' | 'every-message'
+  allowedActorIds: string[] | null
+  status: 'active' | 'disabled'
+}
+
+export type THodmanProjectMessengerSettings = {
+  canManage: boolean
+  connectors: Array<{
+    definition: THodmanMessengerConnectorDefinition
+    state: THodmanMessengerConnectionState
+  }>
+  mattermostRoutes: THodmanMessengerRoute[]
+  slackRoutes: THodmanMessengerRoute[]
+  teamsRoutes: THodmanMessengerRoute[]
+}
+
 export type THodmanAppConnectionOverview = {
   canManage: boolean
   projects: Array<{

@@ -1,0 +1,3 @@
+# Code of conduct
+
+Treat contributors and users respectfully. Harassment, discriminatory language, threats, and disclosure of another person's private information are not acceptable in issues, reviews, or discussions. Assume good faith and focus feedback on actionable technical evidence. Maintainers may edit, hide, or remove harmful content and restrict participation to protect the community. For a private conduct report, request a private contact route from repository maintainers without posting personal details publicly. This policy applies to Toolkit repository participation, not unrelated communities.
