@@ -9,6 +9,7 @@ import type {
   THodmanProfile,
   THodmanProject,
   THodmanProjectEnv,
+  THodmanProjectMessengerSettings,
   THodmanRelease,
   THodmanShellResponse,
   THodmanSqlResponse,
@@ -80,7 +81,7 @@ export class HodmanApiClient {
         ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options.rotateRefreshToken ? { 'X-Refresh-Token-Rotation': '1' } : {}),
-        'User-Agent': 'hodman-toolkit-cli/0.1.0',
+        'User-Agent': 'hodman-toolkit-cli/0.3.0',
       },
       ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {}),
     })
@@ -304,6 +305,12 @@ export class HodmanApiClient {
 
   githubRepositories(tenant: string, connectionId?: string) {
     return this.request<{ result: unknown[] }>('/api/github/repositories', { query: { tenant, connectionId } })
+  }
+
+  projectMessengers(tenant: string, projectId: string) {
+    return this.request<THodmanProjectMessengerSettings>('/api/project-messengers', {
+      query: { tenant, projectId },
+    })
   }
 
   telegramStatus(tenant: string, projectId: string) {

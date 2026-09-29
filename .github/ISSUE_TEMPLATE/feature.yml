@@ -1,0 +1,14 @@
+name: Feature request
+description: Propose a scoped improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: What user outcome is missing?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and compatibility considerations

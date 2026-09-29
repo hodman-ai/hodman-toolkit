@@ -5,19 +5,13 @@ import { HodmanApiClient, HodmanApiError, normalizeHost } from '@hodman-ai/api-c
 import type { THodmanGitConnection, THodmanMessage, THodmanProjectEnv } from '@hodman-ai/api-contract'
 
 import { flag, numberOption, option, parseArgs, parseSetOptions, requiredOption, type ParsedArgs } from './args.js'
-import {
-  deleteStoredSession,
-  jwtExpiresAt,
-  resolveSession,
-  setStoredSession,
-  withRefreshLock,
-} from './credentials.js'
+import { deleteStoredSession, jwtExpiresAt, resolveSession, setStoredSession, withRefreshLock } from './credentials.js'
 import { patchConfig, readConfig } from './config.js'
 import { promptHidden, promptLine, readStdin, readTextInput } from './input.js'
 import { resolveProjectCreationPolicy, resolveProjectOwnership, resolveTaskStatus } from './policies.js'
 import { CliSession } from './session.js'
 
-const CLI_VERSION = '0.2.0'
+const CLI_VERSION = '0.3.0'
 
 type JsonObject = Record<string, unknown>
 
@@ -64,6 +58,10 @@ Tasks and threads:
   hodman thread send --thread UUID --message TEXT [--wait] [--timeout SECONDS]
 
 Messenger integrations:
+  hodman messengers status [--project UUID]
+  hodman messengers mattermost setup|status [--project UUID]
+  hodman messengers slack setup|status [--project UUID]
+  hodman messengers teams setup|status [--project UUID]
   hodman messengers telegram status [--project UUID]
   hodman messengers telegram connect --token BOT_TOKEN [--project ROOT_UUID]
   hodman messengers telegram disconnect|refresh [--project ROOT_UUID]
@@ -127,6 +125,11 @@ async function projectContext(args: ParsedArgs): Promise<{ tenant: string; proje
   const current = await context(args)
   if (!current.projectId) throw new Error('project_not_selected_run_hodman_project_use')
   return { tenant: current.tenant, projectId: current.projectId }
+}
+
+function messengerSettingsUrl(client: HodmanApiClient, tenant: string, projectId: string): string {
+  const path = `/console/en/tenant/${encodeURIComponent(tenant)}/projects/${encodeURIComponent(projectId)}/settings/connections`
+  return new URL(path, `${client.host}/`).toString()
 }
 
 async function authenticatedClient(): Promise<HodmanApiClient> {
@@ -277,6 +280,12 @@ export async function runCommand(args: ParsedArgs): Promise<unknown> {
   const action = args.positionals[1]
   if (!scope || scope === 'help' || flag(args, 'help')) usage()
   if (scope === 'version') return { version: CLI_VERSION }
+  if (scope === 'messengers' && (action === 'slack' || action === 'teams') && (
+    option(args, 'token') || option(args, 'bot-token') || option(args, 'app-token') ||
+    option(args, 'client-secret') || option(args, 'app-id') || option(args, 'tenant-id')
+  )) {
+    throw new Error(`${action}_secrets_ui_only`)
+  }
 
   if (scope === 'auth' && action === 'login') return login(args)
   if (scope === 'auth' && action === 'status') return authStatus()
@@ -431,6 +440,19 @@ export async function runCommand(args: ParsedArgs): Promise<unknown> {
     return flag(args, 'wait')
       ? waitForThread(client, tenant, threadId, message.uuid, numberOption(args, 'timeout', 300))
       : message
+  }
+
+  if (scope === 'messengers' && (action === 'status' || action === 'mattermost' || action === 'slack' || action === 'teams')) {
+    const operation = args.positionals[2]
+    const { tenant, projectId } = await projectContext(args)
+    const status = await client.projectMessengers(tenant, projectId)
+    const settingsUrl = messengerSettingsUrl(client, tenant, projectId)
+    if (action === 'status' || operation === 'status') return { ...status, settingsUrl }
+    if (operation === 'setup' && (action === 'mattermost' || action === 'slack' || action === 'teams')) {
+      const connector = status.connectors.find((item) => item.definition.provider === action)
+      if (!connector) throw new Error(`${action}_connector_not_available`)
+      return { provider: action, definition: connector.definition, state: connector.state, settingsUrl }
+    }
   }
 
   if (scope === 'messengers' && action === 'telegram') {

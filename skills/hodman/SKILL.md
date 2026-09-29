@@ -1,9 +1,16 @@
 ---
 name: hodman
-description: Use Hodman to turn useful personal AI work into controlled, auditable company projects: create or select applications and agents, delegate work, publish them, and operate them through the user-authorized CLI.
+license: MIT-0
+compatibility: Requires a separately installed Hodman Toolkit CLI, Node.js 20+, network access to the configured Hodman host, and an interactive terminal for initial login.
+metadata:
+  author: hodman-ai
+  version: "1.2.0"
+description: "Use Hodman to turn useful personal AI work into controlled, auditable company projects: create or select applications and agents, delegate work, publish them, and operate them through the user-authorized CLI."
 ---
 
 # Hodman
+
+This standalone skill is instructions and operational guidance under MIT-0 (see `LICENSE` in this folder). The separate Toolkit CLI, API packages, and remaining repository are Apache-2.0, **not** MIT-0. Hodman names and marks are not licensed by this skill. Installing the skill does not install the CLI or grant access.
 
 Use `hodman` when the user asks you to work with a project hosted on Hodman rather than only with the current local workspace.
 
@@ -24,9 +31,9 @@ Hodman applications can also extend the company environment. A project may prese
 
 ## CLI discovery
 
-1. Run `command -v hodman` before the first CLI call.
-2. If it is not on `PATH`, check the user-local executable `~/.cargo/bin/hodman` and use that absolute path for subsequent calls.
-3. If neither executable exists, ask the human to install the CLI from `https://github.com/hodman-ai/hodman-toolkit`. Do not download or execute an unverified replacement.
+1. Check `command -v hodman` and run `hodman version` followed by `hodman --help` **without a project context or tokens**. Only use it as the public Toolkit CLI if `hodman version` returns JSON with `"version": "0.3.0"` (or a later explicitly verified compatible release) and help includes `auth login` and `tenant list`. The internal Hodman platform control-plane CLI also uses the binary name `hodman`; **never assume PATH resolves to the public Toolkit**. If help/version differs or is ambiguous, stop and ask for the public CLI path; do not try auth or operational commands against the wrong binary.
+2. If the public CLI is absent, ask the human to install it from the reviewed source at `https://github.com/hodman-ai/hodman-toolkit`: Node.js 20+, `npm ci`, `npm run build`, then `node apps/cli/dist/index.js version` (or `npm link --workspace @hodman-ai/cli` to expose `hodman`). Use the explicit Node path if another `hodman` is already on PATH. The eventual npm `@hodman-ai/cli` binary will also be named `hodman` **if/when published**; do not claim it is published already. Never guess `~/.cargo/bin/hodman` or download and execute an unverified binary.
+3. Network access to the selected Hodman host and an authorized account are required. Initial `auth login` needs a human's interactive terminal. Keep passwords, refresh tokens and bot tokens out of the agent context and command logs.
 
 ## Authenticate and select context
 
@@ -73,7 +80,7 @@ After creation, select the returned UUID with `hodman project use <uuid>`. Treat
 
 ## Publication and Release history
 
-- `hodman project publish` starts publication for the selected project or sub-project.
+- **Ask for explicit owner approval before publishing**; `hodman project publish` starts publication for the selected project or sub-project.
 - `hodman project publish-status` reports only the current temporary publication job.
 - `hodman project releases --limit 20` returns persistent Release history for the selected project or sub-project.
 - `hodman project release --release <uuid>` returns one Release available to the current user.
@@ -104,20 +111,28 @@ Use `--wait` only when the result is expected within the command timeout. Otherw
 
 Do not confuse messenger integrations with App Connections:
 
+- `hodman messengers status` discovers the selected project's supported channels and current connection health without exposing credentials.
+- `hodman messengers mattermost setup|status` returns Mattermost prerequisites, state and the protected Project Settings deep link. Ask the user to enter the server URL and bot token in that UI; never ask them to paste the token into chat or print it in CLI output.
+- `hodman messengers slack setup|status` returns Slack Socket Mode prerequisites, state and the protected Project Settings deep link. Both Slack tokens remain UI-only and write-only.
+- `hodman messengers teams setup|status` returns Microsoft Teams prerequisites, state and the protected Project Settings deep link. Entra tenant ID, Microsoft App ID, client secret and access tokens remain UI-only/write-only and must never be accepted or printed by these commands.
 - `hodman messengers telegram ...` manages the selected project's platform Telegram channel. Use it when the user wants to talk to the Hodman project agent in Telegram, approve an observed chat, or send a bounded notification to an already approved chat.
 - `hodman connectors ...` manages tenant-level App Connections and their source-project grants. These grants allow one project's project CLI to be called by another project; they do not connect Telegram or broaden Inbox access.
 
 For a platform-managed Telegram channel, connect the root bot, ask the user to message it, list pending requests, and approve the request into the intended family project. Do not ask the project agent to build a second bot for that scenario. Build a project-owned Telegram integration only when the application itself needs independent inbound commands, callback buttons, or business logic.
 
 ```bash
+hodman messengers status
+hodman messengers mattermost setup
+hodman messengers slack setup
+hodman messengers mattermost status
 hodman messengers telegram status
-hodman messengers telegram connect --token <bot-token>
+hodman messengers telegram connect --token <bot-token> # ONLY in a trusted interactive terminal after explicit approval; argv may be visible in process listings/history
 hodman messengers telegram requests list
 hodman messengers telegram requests approve --request <uuid> --project <target-project-uuid>
 hodman connectors list
 ```
 
-A bot token supplied by the user may be passed directly to `connect`; never repeat it in an answer, persist it in local notes, or include it in a task. Successful status output contains only a masked token.
+Do not solicit or handle a bot token in agent context. The approved human should run `connect` in a trusted terminal; `--token` on argv may be exposed in process listings and shell history. Never paste a real token into examples, chat, task, or logs. Successful status output contains only a masked token.
 
 ## Choosing direct tools vs. the project agent
 
@@ -135,10 +150,10 @@ A project agent may implement UI for rich results, browser authorization, or lar
 ## Safe direct workflow
 
 - Inspect before changing: `project show`, `file tree`, `file cat`, and `logs`.
-- Use `file get` for bounded files and `file put` only for bounded text files. The current CLI does not support binary writes.
-- Run builds and diagnostics through `shell exec`; output and execution time are bounded.
-- Use `sql query` only for the selected project's database. Start with `SELECT ... LIMIT ...` before reviewed mutations.
-- Project ENV and Git secrets are redacted by default. Reveal only an exact required key or field with `--unsafe`.
+- Obtain explicit approval and review target path/content before `file put`; use it only for bounded text files. The current CLI does not support binary writes.
+- `shell exec` executes arbitrary commands in a project runtime. Obtain explicit approval for the exact command and scope; prefer read-only bounded diagnostics, and never execute unreviewed remote scripts. Output and execution time are bounded.
+- Use `sql query` only for the selected project's database. Start with `SELECT ... LIMIT ...`; require explicit owner approval and a reviewed rollback/scope for mutable SQL (including DDL), never infer write permission from read access.
+- `--unsafe` reveals real credentials. Require explicit approval for the exact key/field and a trusted terminal, and never use it to feed an AI response. Project ENV and Git secrets are redacted by default.
 - Never print, persist, summarize, or send revealed credentials to a task, thread, log, analytics event, or model-visible report.
 - Respect project locks and busy responses. Re-inspect state after another agent or operation finishes.
 
@@ -149,13 +164,13 @@ hodman project show
 hodman file tree
 hodman file cat --path package.json
 hodman file get --path apps/web/src/app.tsx --output /tmp/app.tsx
-hodman file put --path apps/web/src/app.tsx --local /tmp/app.tsx
-hodman shell exec --command "npm run build" --timeout 1800
+hodman file put --path apps/web/src/app.tsx --local /tmp/app.tsx # requires explicit approval and reviewed content
+hodman shell exec --command "npm run build" --timeout 1800 # requires approval of exact command
 hodman logs --env dev --limit 20
 hodman sql query --query "select * from analytics_events order by created_at desc limit 20"
 ```
 
-## Secret reveal
+## Secret reveal (human-only, explicit approval; do not run inside an agent)
 
 ```bash
 hodman env get OPENAI_API_KEY --env dev --unsafe

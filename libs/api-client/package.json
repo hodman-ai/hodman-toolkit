@@ -2,7 +2,7 @@
   "name": "@hodman-ai/api-client",
   "version": "1.0.0",
   "description": "Typed client for supported Hodman API endpoints",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hodman-ai/hodman-toolkit.git",
@@ -23,5 +23,22 @@
   },
   "devDependencies": {
     "vitest": "^4.1.11"
-  }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "homepage": "https://github.com/hodman-ai/hodman-toolkit#readme",
+  "bugs": {
+    "url": "https://github.com/hodman-ai/hodman-toolkit/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "private": false
 }

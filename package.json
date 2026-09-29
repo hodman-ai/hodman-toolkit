@@ -1,8 +1,8 @@
 {
   "name": "hodman-toolkit",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hodman-ai/hodman-toolkit.git"
@@ -14,6 +14,14 @@
   "packageManager": "npm@10.1.0",
   "scripts": {
     "build": "npm run build --workspace @hodman-ai/api-contract && npm run build --workspace @hodman-ai/api-client && npm run build --workspace @hodman-ai/cli",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "check:skill": "node scripts/validate-skill.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "homepage": "https://github.com/hodman-ai/hodman-toolkit#readme",
+  "bugs": {
+    "url": "https://github.com/hodman-ai/hodman-toolkit/issues"
   }
 }

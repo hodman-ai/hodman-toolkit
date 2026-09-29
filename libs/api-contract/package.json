@@ -2,7 +2,7 @@
   "name": "@hodman-ai/api-contract",
   "version": "1.0.0",
   "description": "Public DTOs for supported Hodman API endpoints",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hodman-ai/hodman-toolkit.git",
@@ -11,9 +11,35 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist/index.js",
+    "dist/index.d.ts",
+    "dist/messengers.js",
+    "dist/messengers.d.ts"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "node --test"
+    "test": "npm run build && node --test dist/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "homepage": "https://github.com/hodman-ai/hodman-toolkit#readme",
+  "bugs": {
+    "url": "https://github.com/hodman-ai/hodman-toolkit/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "private": false,
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "typescript": "^5.3.3"
   }
 }
