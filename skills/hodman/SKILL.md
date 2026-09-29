@@ -5,7 +5,7 @@ description: "Use Hodman to turn useful personal AI work into controlled, audita
 
 # Hodman
 
-This standalone skill (version 1.2.0) is instructions and operational guidance under MIT-0 (see `LICENSE` in this folder). The separate Toolkit CLI, API packages, and remaining repository are Apache-2.0, **not** MIT-0. Hodman names and marks are not licensed by this skill. Installing the skill does not install the CLI or grant access. Using it requires a separately installed Hodman Toolkit CLI, Node.js 20+, network access to the configured Hodman host, and an interactive terminal for initial login.
+This skill operates Hodman through the separately installed `@hodman-ai/cli`. Initial login requires a human-operated interactive terminal.
 
 Use `hodman` when the user asks you to work with a project hosted on Hodman rather than only with the current local workspace.
 
