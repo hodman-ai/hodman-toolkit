@@ -11,7 +11,7 @@ const header = frontmatter[1]
 assert.deepEqual(header.split('\n').map((line) => line.split(':', 1)[0]), ['name', 'description'], 'frontmatter must contain exactly name and description')
 assert.ok(header.includes('name: hodman'))
 assert.ok(header.includes('description:'))
-assert.ok(text.includes('version 1.2.0') && text.includes('under MIT-0'), 'skill version and license must appear in body')
+assert.ok(text.includes('This skill operates Hodman through the separately installed `@hodman-ai/cli`. Initial login requires a human-operated interactive terminal.'), 'skill introduction must identify separate CLI and interactive login')
 assert.ok(text.includes('Node.js 20+') && text.includes('interactive terminal'), 'compatibility requirements must appear in body')
 assert.ok(readFileSync(license, 'utf8').startsWith('MIT No Attribution'))
 assert.ok(!text.includes('~/.cargo/bin/hodman') || text.includes('Never guess `~/.cargo/bin/hodman`'))

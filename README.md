@@ -1,5 +1,7 @@
 # Hodman Toolkit
 
+[![CI: Node.js 20 and 22](https://github.com/hodman-ai/hodman-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/hodman-ai/hodman-toolkit/actions/workflows/ci.yml) [![npm: @hodman-ai/cli](https://img.shields.io/npm/v/%40hodman-ai%2Fcli?label=npm%20CLI)](https://www.npmjs.com/package/@hodman-ai/cli) [![Node.js 20+](https://img.shields.io/badge/Node.js-20%2B-339933)](https://nodejs.org/en/download) [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE) [![Skill on ClawHub](https://img.shields.io/badge/skill-ClawHub-2667c9)](https://clawhub.ai/hodman-ai/skills/hodman) [![Skill on skills.sh](https://img.shields.io/badge/skill-skills.sh-2667c9)](https://www.skills.sh/hodman-ai/hodman-toolkit/hodman)
+
 Open-source, user-authorized tools for turning useful personal AI work into controlled, auditable company projects on [Hodman](https://hodman.ai).
 
 ## What is Hodman?
@@ -19,9 +21,21 @@ This repository contains:
 
 The Hodman backend, web console, hosted runtime orchestration, internal agent prompts, and self-hosted platform distribution are intentionally not included.
 
-## Install from source
+## Install the CLI
 
-Requirements: Node.js 20 or newer and npm 10 or newer.
+Requires Node.js 20 or newer. Install the published CLI from npm:
+
+```bash
+npm install --global @hodman-ai/cli
+hodman version
+hodman --help
+```
+
+The public Toolkit CLI and Hodman's internal platform CLI both use the `hodman` binary name. Before authentication, verify that `hodman version` identifies the public Toolkit CLI and that help lists `auth login` and `tenant list`. If another binary takes precedence on `PATH`, resolve the npm-installed binary explicitly; do not use the internal CLI by mistake.
+
+### Install from source (development)
+
+For contributors, use Node.js 20+ and npm 10+:
 
 ```bash
 git clone https://github.com/hodman-ai/hodman-toolkit.git
@@ -50,7 +64,7 @@ For Agent Skills-compatible harnesses, install directly from the public reposito
 npx skills add hodman-ai/hodman-toolkit --skill hodman
 ```
 
-The standalone skill folder (SKILL.md and its own MIT-0 LICENSE) is independent guidance; Toolkit CLI, API packages and repository code are Apache-2.0. No registry publication is performed by this repository. The same standards-compatible `SKILL.md` can be discovered by harnesses such as Hermes through GitHub or skills.sh.
+The standalone skill ([`SKILL.md`](skills/hodman/SKILL.md) and its own [MIT-0 license](skills/hodman/LICENSE)) is independent guidance; the Toolkit CLI, API packages, and repository code are Apache-2.0. The skill is also available on [ClawHub](https://clawhub.ai/hodman-ai/skills/hodman) and [skills.sh](https://www.skills.sh/hodman-ai/hodman-toolkit/hodman). Installing a skill does not install the CLI or grant access. Compatible harnesses such as Hermes can discover it through GitHub or skills.sh.
 
 ### Codex
 
