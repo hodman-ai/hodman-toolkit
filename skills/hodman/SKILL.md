@@ -1,16 +1,11 @@
 ---
 name: hodman
-license: MIT-0
-compatibility: Requires a separately installed Hodman Toolkit CLI, Node.js 20+, network access to the configured Hodman host, and an interactive terminal for initial login.
-metadata:
-  author: hodman-ai
-  version: "1.2.0"
 description: "Use Hodman to turn useful personal AI work into controlled, auditable company projects: create or select applications and agents, delegate work, publish them, and operate them through the user-authorized CLI."
 ---
 
 # Hodman
 
-This standalone skill is instructions and operational guidance under MIT-0 (see `LICENSE` in this folder). The separate Toolkit CLI, API packages, and remaining repository are Apache-2.0, **not** MIT-0. Hodman names and marks are not licensed by this skill. Installing the skill does not install the CLI or grant access.
+This standalone skill (version 1.2.0) is instructions and operational guidance under MIT-0 (see `LICENSE` in this folder). The separate Toolkit CLI, API packages, and remaining repository are Apache-2.0, **not** MIT-0. Hodman names and marks are not licensed by this skill. Installing the skill does not install the CLI or grant access. Using it requires a separately installed Hodman Toolkit CLI, Node.js 20+, network access to the configured Hodman host, and an interactive terminal for initial login.
 
 Use `hodman` when the user asks you to work with a project hosted on Hodman rather than only with the current local workspace.
 
@@ -32,7 +27,7 @@ Hodman applications can also extend the company environment. A project may prese
 ## CLI discovery
 
 1. Check `command -v hodman` and run `hodman version` followed by `hodman --help` **without a project context or tokens**. Only use it as the public Toolkit CLI if `hodman version` returns JSON with `"version": "0.3.0"` (or a later explicitly verified compatible release) and help includes `auth login` and `tenant list`. The internal Hodman platform control-plane CLI also uses the binary name `hodman`; **never assume PATH resolves to the public Toolkit**. If help/version differs or is ambiguous, stop and ask for the public CLI path; do not try auth or operational commands against the wrong binary.
-2. If the public CLI is absent, ask the human to install it from the reviewed source at `https://github.com/hodman-ai/hodman-toolkit`: Node.js 20+, `npm ci`, `npm run build`, then `node apps/cli/dist/index.js version` (or `npm link --workspace @hodman-ai/cli` to expose `hodman`). Use the explicit Node path if another `hodman` is already on PATH. The eventual npm `@hodman-ai/cli` binary will also be named `hodman` **if/when published**; do not claim it is published already. Never guess `~/.cargo/bin/hodman` or download and execute an unverified binary.
+2. If the public CLI is absent, ask the human to install the published package with Node.js 20+: `npm install --global @hodman-ai/cli@0.3.0`. Then run `hodman version` and `hodman --help` and apply the identity checks in step 1 before any authenticated command. If another `hodman` is already on PATH, resolve the installed npm binary explicitly rather than invoking the platform CLI by mistake. Alternatively, install from the reviewed source at `https://github.com/hodman-ai/hodman-toolkit` using `npm ci`, `npm run build`, then `node apps/cli/dist/index.js version` (or `npm link --workspace @hodman-ai/cli`). Never guess `~/.cargo/bin/hodman` or download and execute an unverified binary.
 3. Network access to the selected Hodman host and an authorized account are required. Initial `auth login` needs a human's interactive terminal. Keep passwords, refresh tokens and bot tokens out of the agent context and command logs.
 
 ## Authenticate and select context
